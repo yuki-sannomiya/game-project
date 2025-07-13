@@ -19,30 +19,26 @@ const assets = {
 };
 
 const eventEffects = {
-  yenHigh: {
-    name: "円高",
-    effects: {
-      toyota: -3.0,
-      usbond: -2.0,
-      mercari: -1.0
-    }
-  },
-  quake: {
-    name: "地震（東日本）",
-    effects: {
-      jr: -5.0,
-      tepco: -3.0,
-      jgb: +2.0
-    }
-  },
-  boom: {
-    name: "好景気",
-    effects: {
-      mercari: +5.0,
-      toyota: +3.0,
-      mufg: +2.0
-    }
-  }
+  yenHigh: { name: "円高進行（150→135円）", effects: { toyota: -3, usbond: -2, mercari: -1 } },
+  heatwave: { name: "猛暑・節電要請", effects: { tepco: +4 } },
+  earthquake: { name: "首都圏で大地震", effects: { jr: -5, tepco: -3, jgb: +2 } },
+  usRateHike: { name: "米国金利上昇（1%利上げ）", effects: { usbond: +2, bitcoin: -2 } },
+  nintendoHit: { name: "任天堂の大ヒット新作", effects: { mercari: +4 } },
+  cyberAttack: { name: "金融機関へのサイバー攻撃", effects: { mufg: -3 } },
+  pandemic: { name: "新型感染症流行", effects: { jr: -4, mercari: -2, jgb: +2 } },
+  heavyRain: { name: "大雨による交通マヒ", effects: { jr: -3 } },
+  inflation: { name: "インフレ進行（物価高）", effects: { jgb: -1, bitcoin: +3 } },
+  stockCrash: { name: "株式市場の急落", effects: { toyota: -4, mufg: -3, mercari: -5 } },
+  evSubsidy: { name: "世界的EV補助金強化", effects: { toyota: +3, mercari: +2 } },
+  chipShortage: { name: "半導体供給不足", effects: { toyota: -3, mercari: -2 } },
+  usRecovery: { name: "米国景気回復の兆し", effects: { usbond: +2, toyota: +2 } },
+  taxHike: { name: "消費税引き上げ決定", effects: { mercari: -3, mufg: -1 } },
+  yenLow: { name: "円安進行（135→150円）", effects: { toyota: +3, usbond: +1 } },
+  netDown: { name: "大規模通信障害", effects: { mercari: -3 } },
+  healthTrend: { name: "健康志向ブーム", effects: { } },
+  volcano: { name: "火山噴火による航空混乱", effects: { jr: -2 } },
+  laborStrike: { name: "労働問題・ストライキ", effects: { tepco: -2 } },
+  snsScandal: { name: "SNSで炎上騒動", effects: { mercari: -2 } }
 };
 
 let gameState = {
