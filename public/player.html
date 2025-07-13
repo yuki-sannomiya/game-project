@@ -89,6 +89,13 @@
         li.textContent = `${assets[key]}：${returns[key]}%`;
         list.appendChild(li);
       }
+
+      // 入力値とボタンをリセット（2ラウンド目以降対応）
+      for (let key in assets) {
+        const input = document.getElementById(key);
+        if (input) input.value = 0;
+      }
+      validate();
     });
 
     socket.on("playerList", (players) => {
