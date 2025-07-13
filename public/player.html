@@ -50,6 +50,7 @@
       document.getElementById("investmentArea").style.display = "block";
 
       const container = document.getElementById("investmentInputs");
+      container.innerHTML = "";
       for (let key in assets) {
         const label = document.createElement("label");
         label.textContent = assets[key] + "：";
@@ -91,6 +92,13 @@
         li.textContent = `${assets[key]}：${returns[key]}%`;
         list.appendChild(li);
       }
+
+      // 入力リセット
+      for (let key in assets) {
+        const input = document.getElementById(key);
+        if (input) input.value = 0;
+      }
+      document.getElementById("submitBtn").disabled = true;
     });
 
     socket.on("playerList", (players) => {
