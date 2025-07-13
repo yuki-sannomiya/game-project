@@ -30,6 +30,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    let myMoney = 100;
 
     const assets = {
       toyota: "トヨタ自動車",
@@ -78,7 +79,8 @@
     function submitInvestments() {
       const investments = {};
       for (let key in assets) {
-        investments[key] = Number(document.getElementById(key).value);
+        const percent = Number(document.getElementById(key).value);
+        investments[key] = (percent / 100) * myMoney;
       }
       socket.emit("submitInvestment", investments);
       document.getElementById("submitBtn").disabled = true;
@@ -93,7 +95,6 @@
         list.appendChild(li);
       }
 
-      // 入力リセット
       for (let key in assets) {
         const input = document.getElementById(key);
         if (input) input.value = 0;
@@ -109,8 +110,8 @@
         li.textContent = `${p.name}：${p.money.toFixed(2)}万円`;
         list.appendChild(li);
 
-        // 自分の資産額を表示
         if (p.name === document.getElementById("name").value) {
+          myMoney = p.money;
           document.getElementById("moneyDisplay").textContent =
             `現在の資産: ${p.money.toFixed(2)}万円`;
         }
