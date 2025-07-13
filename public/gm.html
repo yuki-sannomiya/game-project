@@ -1,47 +1,113 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GM画面</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゲームマスター画面</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom, #f0f8ff, #e6f7ff);
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #007acc;
+    }
+    h2 {
+      color: #005580;
+      margin-top: 30px;
+    }
+    button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      background: #ffffffcc;
+      margin: 5px auto;
+      padding: 10px;
+      border-radius: 8px;
+      width: 80%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
   <h1>ゲームマスター画面</h1>
-
-  <div id="playerStatus">
-    <h2>プレイヤー一覧</h2>
-    <ul id="playerList"></ul>
-  </div>
-
   <div id="eventButtons" style="display: none;">
     <h2>イベントを選択</h2>
-    <button onclick="applyEvent('yenHigh')">円高</button>
-    <button onclick="applyEvent('quake')">地震（東日本）</button>
-    <button onclick="applyEvent('boom')">好景気</button>
+    <div id="eventList"></div>
+  </div>
+  <div>
+    <h2>プレイヤー一覧</h2>
+    <ul id="playersList"></ul>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
 
+    const events = {
+      yenHigh: "円高進行（150→135円）",
+      heatwave: "猛暑・節電要請",
+      earthquake: "首都圏で大地震",
+      usRateHike: "米国金利上昇（1%利上げ）",
+      nintendoHit: "任天堂の大ヒット新作",
+      cyberAttack: "金融機関へのサイバー攻撃",
+      infection: "新型感染症流行",
+      flood: "大雨による交通マヒ",
+      inflation: "インフレ進行（物価高）",
+      crash: "株式市場の急落",
+      evSubsidy: "世界的EV補助金強化",
+      chipShortage: "半導体供給不足",
+      usRecovery: "米国景気回復の兆し",
+      taxHike: "消費税引き上げ決定",
+      yenWeak: "円安進行（135→150円）",
+      telecomOutage: "大規模通信障害",
+      healthTrend: "健康志向ブーム",
+      volcano: "火山噴火による航空混乱",
+      strike: "労働問題・ストライキ",
+      snsFlame: "SNSで炎上騒動"
+    };
+
     socket.emit("joinAsGM");
 
     socket.on("gmJoined", () => {
-      console.log("GMとして参加しました。");
-    });
-
-    socket.on("playerList", (players) => {
-      const list = document.getElementById("playerList");
-      list.innerHTML = "";
-      for (let p of players) {
-        const li = document.createElement("li");
-        li.textContent = `${p.name}：${p.hasInvested ? '投資済み' : '未投資'}`;
-        list.appendChild(li);
+      const eventListDiv = document.getElementById("eventList");
+      for (let key in events) {
+        const btn = document.createElement("button");
+        btn.textContent = events[key];
+        btn.onclick = () => applyEvent(key);
+        eventListDiv.appendChild(btn);
       }
     });
 
     socket.on("allInvested", () => {
       document.getElementById("eventButtons").style.display = "block";
+    });
+
+    socket.on("playerList", (players) => {
+      const list = document.getElementById("playersList");
+      list.innerHTML = "";
+      for (let p of players) {
+        const li = document.createElement("li");
+        li.textContent = `${p.name}：${p.hasInvested ? "✅ 投資済み" : "⏳ 未投資"}`;
+        list.appendChild(li);
+      }
     });
 
     function applyEvent(key) {
