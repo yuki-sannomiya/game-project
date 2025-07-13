@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>投資ゲーム - GM A</title>
+</head>
+<body>
+  <h1>GM 操作画面（ルームA）</h1>
+
+  <button onclick="selectEvent('好景気')">📈 好景気</button>
+  <button onclick="selectEvent('不景気')">📉 不景気</button>
+  <button onclick="selectEvent('金融危機')">💥 金融危機</button>
+  <button onclick="selectEvent('円安進行')">💴 円安進行</button>
+  <button onclick="selectEvent('災害発生')">🌪 災害発生</button>
+
+  <p id="status">イベント未選択</p>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const room = "A"; // Aルーム用
+
+    function selectEvent(eventName) {
+      document.getElementById("status").textContent = `選択中イベント: ${eventName}`;
+      socket.emit("gmSelectEvent", { room, event: eventName });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>投資ゲーム - プレイヤーA</title>
+</head>
+<body>
+  <h1>プレイヤーA</h1>
+  <p id="welcome"></p>
+
+  <form id="nameForm">
+    <input type="text" id="nameInput" placeholder="名前を入力" required />
+    <button type="submit">参加</button>
+  </form>
+
+  <div id="gameArea" style="display:none;">
+    <h2>資産: <span id="assets">100万円</span></h2>
+    <div id="investmentOptions"></div>
+    <button id="submitInvestment">投資を確定</button>
+
+    <h3>現在の利回り:</h3>
+    <ul id="returnsList"></ul>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const room = "A"; // ルーム名を固定
+
+    let playerName = "";
+    let assets = 100;
+
+    document.getElementById("nameForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      playerName = document.getElementById("nameInput").value;
+      socket.emit("joinRoom", { name: playerName, room });
+      document.getElementById("welcome").textContent = `${playerName} さん、ようこそ！`;
+      document.getElementById("nameForm").style.display = "none";
+      document.getElementById("gameArea").style.display = "block";
+    });
+
+    document.getElementById("submitInvestment").addEventListener("click", () => {
+      // すべてを一括投資する仕様（デモ用）
+      socket.emit("submitInvestment", { room, amount: assets });
+    });
+
+    socket.on("updateReturns", (data) => {
+      const list = document.getElementById("returnsList");
+      list.innerHTML = "";
+      Object.entries(data.returns).forEach(([asset, value]) => {
+        const li = document.createElement("li");
+        li.textContent = `${asset}: ${value}%`;
+        list.appendChild(li);
+      });
+    });
+
+    socket.on("updateAssets", (newAssets) => {
+      assets = newAssets;
+      document.getElementById("assets").textContent = `${assets.toFixed(2)}万円`;
+    });
+  </script>
+</body>
+</html>
