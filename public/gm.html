@@ -7,6 +7,12 @@
 </head>
 <body>
   <h1>ゲームマスター画面</h1>
+
+  <div id="playerStatus">
+    <h2>プレイヤー一覧</h2>
+    <ul id="playerList"></ul>
+  </div>
+
   <div id="eventButtons" style="display: none;">
     <h2>イベントを選択</h2>
     <button onclick="applyEvent('yenHigh')">円高</button>
@@ -22,6 +28,16 @@
 
     socket.on("gmJoined", () => {
       console.log("GMとして参加しました。");
+    });
+
+    socket.on("playerList", (players) => {
+      const list = document.getElementById("playerList");
+      list.innerHTML = "";
+      for (let p of players) {
+        const li = document.createElement("li");
+        li.textContent = `${p.name}：${p.hasInvested ? '投資済み' : '未投資'}`;
+        list.appendChild(li);
+      }
     });
 
     socket.on("allInvested", () => {
