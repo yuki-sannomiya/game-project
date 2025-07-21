@@ -12,12 +12,8 @@
       text-align: center;
       padding: 20px;
     }
-    h1 {
+    h1, h2 {
       color: #007acc;
-    }
-    h2 {
-      color: #005580;
-      margin-top: 30px;
     }
     button {
       background-color: #4caf50;
@@ -48,10 +44,13 @@
 </head>
 <body>
   <h1>ゲームマスター画面</h1>
-  <div id="eventButtons" style="display: none;">
+
+  <div id="eventButtons" style="display: none">
     <h2>イベントを選択</h2>
-    <div id="eventList"></div>
+    <div id="eventOptions"></div>
+    <button onclick="applySelectedEvents()">イベント適用</button>
   </div>
+
   <div>
     <h2>プレイヤー一覧</h2>
     <ul id="playersList"></ul>
@@ -60,40 +59,23 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-
-    const events = {
-      yenHigh: "円高進行（150→135円）",
-      heatwave: "猛暑・節電要請",
-      earthquake: "首都圏で大地震",
-      usRateHike: "米国金利上昇（1%利上げ）",
-      nintendoHit: "任天堂の大ヒット新作",
-      cyberAttack: "金融機関へのサイバー攻撃",
-      infection: "新型感染症流行",
-      flood: "大雨による交通マヒ",
-      inflation: "インフレ進行（物価高）",
-      crash: "株式市場の急落",
-      evSubsidy: "世界的EV補助金強化",
-      chipShortage: "半導体供給不足",
-      usRecovery: "米国景気回復の兆し",
-      taxHike: "消費税引き上げ決定",
-      yenWeak: "円安進行（135→150円）",
-      telecomOutage: "大規模通信障害",
-      healthTrend: "健康志向ブーム",
-      volcano: "火山噴火による航空混乱",
-      strike: "労働問題・ストライキ",
-      snsFlame: "SNSで炎上騒動"
-    };
+    const eventNames = [
+      "円高進行（150→135円）", "猛暑・節電要請", "首都圏で大地震", "米国金利上昇（1%利上げ）",
+      "任天堂の大ヒット新作", "金融機関へのサイバー攻撃", "新型感染症流行", "大雨による交通マヒ",
+      "インフレ進行（物価高）", "株式市場の急落", "世界的EV補助金強化", "半導体供給不足",
+      "米国景気回復の兆し", "消費税引き上げ決定", "円安進行（135→150円）", "大規模通信障害",
+      "健康志向ブーム", "火山噴火による航空混乱", "労働問題・ストライキ", "SNSで炎上騒動"
+    ];
 
     socket.emit("joinAsGM");
 
     socket.on("gmJoined", () => {
-      const eventListDiv = document.getElementById("eventList");
-      for (let key in events) {
-        const btn = document.createElement("button");
-        btn.textContent = events[key];
-        btn.onclick = () => applyEvent(key);
-        eventListDiv.appendChild(btn);
-      }
+      const container = document.getElementById("eventOptions");
+      eventNames.forEach((name, index) => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type='checkbox' value='${index + 1}'> ${name}<br>`;
+        container.appendChild(label);
+      });
     });
 
     socket.on("allInvested", () => {
@@ -110,8 +92,10 @@
       }
     });
 
-    function applyEvent(key) {
-      socket.emit("applyEvent", key);
+    function applySelectedEvents() {
+      const checkboxes = document.querySelectorAll("#eventOptions input:checked");
+      const selected = Array.from(checkboxes).map(cb => Number(cb.value));
+      socket.emit("applyEvent", selected);
       document.getElementById("eventButtons").style.display = "none";
     }
   </script>
