@@ -1,45 +1,51 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>プレイヤー画面</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(to bottom, #fffbe6, #e6f7ff);
+      background: linear-gradient(to bottom, #fff8f0, #ffe0cc);
       color: #333;
       padding: 20px;
-    }
-    h1, h2 {
       text-align: center;
-      color: #007acc;
+    }
+    h1, h2, h3 {
+      color: #d2691e;
+    }
+    label {
+      display: inline-block;
+      width: 120px;
     }
     input[type="number"] {
       width: 60px;
-      margin: 5px;
     }
     button {
-      background-color: #4caf50;
+      background-color: #ff7f50;
       color: white;
       border: none;
       padding: 10px 20px;
-      margin: 10px auto;
+      margin-top: 10px;
       border-radius: 5px;
-      display: block;
-      font-size: 16px;
       cursor: pointer;
     }
-    button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
+    button:hover {
+      background-color: #ff6333;
     }
     ul {
       list-style-type: none;
       padding: 0;
     }
     li {
-      margin-bottom: 5px;
+      background: #ffffffcc;
+      margin: 5px auto;
+      padding: 8px;
+      border-radius: 6px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
   </style>
 </head>
@@ -47,33 +53,26 @@
   <h1>プレイヤー画面</h1>
 
   <div id="nameInput">
-    <input type="text" id="name" placeholder="名前を入力" />
+    <input type="text" id="name" placeholder="名前を入力">
     <button onclick="join()">参加</button>
   </div>
 
   <p id="moneyDisplay">現在の資産: 100万円</p>
 
-  <div id="investmentArea" style="display: none">
+  <div id="investmentArea" style="display:none;">
     <h2>資産を配分（合計100%）</h2>
-    <div id="baseReturns"></div>
     <div id="investmentInputs"></div>
     <button onclick="submitInvestments()" id="submitBtn" disabled>投資完了</button>
   </div>
 
-  <div>
-    <h3>発生イベント</h3>
-    <ul id="eventList"></ul>
-  </div>
+  <h3>現在の利回り</h3>
+  <ul id="returnsList"></ul>
 
-  <div>
-    <h3>現在の利回り</h3>
-    <ul id="returnsList"></ul>
-  </div>
+  <h3>発生イベント</h3>
+  <ul id="eventLog"></ul>
 
-  <div>
-    <h3>プレイヤーの資産状況</h3>
-    <ul id="playersList"></ul>
-  </div>
+  <h3>プレイヤーの資産状況</h3>
+  <ul id="playersList"></ul>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -96,12 +95,6 @@
       socket.emit("joinAsPlayer", name);
       document.getElementById("nameInput").style.display = "none";
       document.getElementById("investmentArea").style.display = "block";
-
-      const base = document.getElementById("baseReturns");
-      base.innerHTML = "<strong>基準利回り</strong><br>";
-      for (let key in assets) {
-        base.innerHTML += `${assets[key]}: <span id="base-${key}"></span>%<br>`;
-      }
 
       const container = document.getElementById("investmentInputs");
       container.innerHTML = "";
@@ -138,23 +131,21 @@
       document.getElementById("submitBtn").disabled = true;
     }
 
-    socket.on("baseReturns", (baseReturns) => {
-      for (let key in baseReturns) {
-        document.getElementById(`base-${key}`).textContent = baseReturns[key];
-      }
-    });
-
-    socket.on("updatedReturns", ({ returns, events }) => {
-      const rList = document.getElementById("returnsList");
-      rList.innerHTML = "";
+    socket.on("updatedReturns", (returns) => {
+      const list = document.getElementById("returnsList");
+      list.innerHTML = "";
       for (let key in returns) {
         const li = document.createElement("li");
         li.textContent = `${assets[key]}：${returns[key]}%`;
-        rList.appendChild(li);
+        list.appendChild(li);
       }
 
-      const eList = document.getElementById("eventList");
-      eList.innerHTML = events.map(e => `<li>${e}</li>`).join("");
+      // 入力リセット
+      for (let key in assets) {
+        const input = document.getElementById(key);
+        if (input) input.value = 0;
+      }
+      document.getElementById("submitBtn").disabled = true;
     });
 
     socket.on("playerList", (players) => {
@@ -170,6 +161,13 @@
             `現在の資産: ${p.money.toFixed(2)}万円`;
         }
       }
+    });
+
+    socket.on("eventApplied", (eventInfo) => {
+      const log = document.getElementById("eventLog");
+      const li = document.createElement("li");
+      li.textContent = `${eventInfo.name}：${eventInfo.details}`;
+      log.appendChild(li);
     });
   </script>
 </body>
