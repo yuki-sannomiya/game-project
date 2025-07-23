@@ -1,115 +1,121 @@
-// ===== server.js =====
-const express = require("express");
-const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
-const PORT = process.env.PORT || 3000;
-
-app.use(express.static("public"));
-
-const assets = {
-  toyota: { name: "トヨタ自動車", baseReturn: 5.0, variance: 6.0 },
-  tepco: { name: "東京電力HD", baseReturn: 2.0, variance: 2.0 },
-  jr: { name: "JR東日本", baseReturn: 3.0, variance: 3.0 },
-  mufg: { name: "MUFG", baseReturn: 4.0, variance: 4.0 },
-  mercari: { name: "メルカリ", baseReturn: 7.0, variance: 9.0 },
-  bitcoin: { name: "ビットコイン", baseReturn: 0.0, variance: 20.0 },
-  jgb: { name: "日本国債", baseReturn: 1.0, variance: 1.0 },
-  usbond: { name: "米国債", baseReturn: 2.5, variance: 1.5 }
-};
-
-const eventEffects = {
-  yenHigh: { name: "円高", effects: { toyota: -3.0, usbond: -2.0, mercari: -1.0 } },
-  quake: { name: "地震（東日本）", effects: { jr: -5.0, tepco: -3.0, jgb: +2.0 } },
-  boom: { name: "好景気", effects: { mercari: +5.0, toyota: +3.0, mufg: +2.0 } }
-};
-
-let gameState = {
-  players: {},
-  gmSocketId: null,
-  currentReturns: {},
-  activeEvents: []
-};
-
-function getAdjustedReturns() {
-  const result = {};
-  for (let key in assets) {
-    const base = assets[key].baseReturn;
-    const variance = assets[key].variance;
-    const random = (Math.random() * 2 - 1) * variance;
-    let eventBonus = 0;
-    for (let e of gameState.activeEvents) {
-      eventBonus += e.effects[key] || 0;
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゲームマスター画面</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom, #f0f8ff, #e6f7ff);
+      color: #333;
+      text-align: center;
+      padding: 20px;
     }
-    result[key] = +(base + random + eventBonus).toFixed(1);
-  }
-  return result;
-}
+    h1 {
+      color: #007acc;
+    }
+    h2 {
+      color: #005580;
+      margin-top: 30px;
+    }
+    button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      background: #ffffffcc;
+      margin: 5px auto;
+      padding: 10px;
+      border-radius: 8px;
+      width: 80%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>ゲームマスター画面</h1>
+  <div id="eventButtons">
+    <h2>イベントを選択</h2>
+    <div id="eventOptions"></div>
+  </div>
+  <div>
+    <h2>プレイヤー一覧</h2>
+    <ul id="playersList"></ul>
+  </div>
+  <div>
+    <h2>現在発生中のイベント</h2>
+    <ul id="eventLog"></ul>
+  </div>
 
-io.on("connection", (socket) => {
-  console.log("Connected:", socket.id);
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const activeEvents = [];
 
-  socket.on("joinAsGM", () => {
-    gameState.gmSocketId = socket.id;
-    socket.emit("gmJoined");
-  });
+    const allEvents = [
+      { key: 'yenHigh', name: '円高進行', details: '円高により輸出企業が減益 (例: トヨタ -2%)' },
+      { key: 'heatWave', name: '猛暑・節電要請', details: '電力需要増で電力株が上昇 (例: 東京電力 +2%)' },
+      { key: 'quake', name: '首都圏で大地震', details: '株価下落・インフラ混乱 (例: JR -3%)' },
+      { key: 'boom', name: '米国景気回復', details: '全体的に上昇傾向 (例: MUFG +2%)' }
+      // 必要に応じてさらに追加
+    ];
 
-  socket.on("joinAsPlayer", (name) => {
-    gameState.players[socket.id] = {
-      name,
-      money: 100,
-      investments: {},
-      hasInvested: false
-    };
-    io.emit("playerList", Object.values(gameState.players));
-  });
+    socket.emit("joinAsGM");
 
-  socket.on("submitInvestment", (data) => {
-    if (gameState.players[socket.id]) {
-      gameState.players[socket.id].investments = data;
-      gameState.players[socket.id].hasInvested = true;
+    socket.on("gmJoined", () => {
+      console.log("GMとして参加しました。");
+    });
 
-      const allInvested = Object.values(gameState.players).every(p => p.hasInvested);
-      if (allInvested && gameState.gmSocketId) {
-        io.to(gameState.gmSocketId).emit("allInvested");
+    socket.on("playerList", (players) => {
+      const list = document.getElementById("playersList");
+      list.innerHTML = "";
+      for (let p of players) {
+        const li = document.createElement("li");
+        li.textContent = `${p.name}：${p.hasInvested ? "✅ 投資済み" : "⏳ 未投資"}`;
+        list.appendChild(li);
+      }
+    });
+
+    socket.on("eventApplied", (eventInfo) => {
+      activeEvents.push(eventInfo);
+      updateEventLog();
+    });
+
+    function updateEventLog() {
+      const log = document.getElementById("eventLog");
+      log.innerHTML = "";
+      for (let e of activeEvents) {
+        const li = document.createElement("li");
+        li.textContent = `${e.name}：${e.details}`;
+        log.appendChild(li);
       }
     }
-  });
 
-  socket.on("applyEvent", (eventKey) => {
-    const event = eventEffects[eventKey];
-    if (event) {
-      gameState.activeEvents.push(event);
-      io.emit("eventApplied", {
-        name: event.name,
-        details: Object.entries(event.effects).map(([k, v]) => `${assets[k].name} ${v > 0 ? '+' : ''}${v}%`).join(', ')
-      });
-
-      gameState.currentReturns = getAdjustedReturns();
-      io.emit("updatedReturns", gameState.currentReturns);
-
-      for (let id in gameState.players) {
-        const player = gameState.players[id];
-        let total = 0;
-        for (let key in player.investments) {
-          const percent = player.investments[key];
-          const ret = gameState.currentReturns[key];
-          total += player.money * (percent / 100) * (1 + ret / 100);
-        }
-        player.money = +total.toFixed(2);
-        player.hasInvested = false;
-        player.investments = {};
-      }
-      io.emit("playerList", Object.values(gameState.players));
+    function applyEvent(key) {
+      socket.emit("applyEvent", key);
     }
-  });
 
-  socket.on("disconnect", () => {
-    delete gameState.players[socket.id];
-    io.emit("playerList", Object.values(gameState.players));
-  });
-});
-
-http.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+    const container = document.getElementById("eventOptions");
+    for (let ev of allEvents) {
+      const btn = document.createElement("button");
+      btn.textContent = ev.name;
+      btn.onclick = () => applyEvent(ev.key);
+      container.appendChild(btn);
+    }
+  </script>
+</body>
+</html>

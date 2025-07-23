@@ -7,51 +7,28 @@
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(to bottom, #fff8f0, #ffe0cc);
+      background: linear-gradient(to bottom, #fff5f5, #ffe6e6);
       color: #333;
       padding: 20px;
       text-align: center;
     }
-    h1, h2, h3 {
-      color: #d2691e;
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
     }
-    label {
-      display: inline-block;
-      width: 120px;
-    }
-    input[type="number"] {
-      width: 60px;
-    }
-    button {
-      background-color: #ff7f50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
+    #investmentInputs label {
+      display: block;
       margin-top: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #ff6333;
     }
     ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      background: #ffffffcc;
-      margin: 5px auto;
-      padding: 8px;
-      border-radius: 6px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      text-align: left;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <h1>プレイヤー画面</h1>
-
   <div id="nameInput">
     <input type="text" id="name" placeholder="名前を入力">
     <button onclick="join()">参加</button>
@@ -68,7 +45,7 @@
   <h3>現在の利回り</h3>
   <ul id="returnsList"></ul>
 
-  <h3>発生イベント</h3>
+  <h3>発生したイベント</h3>
   <ul id="eventLog"></ul>
 
   <h3>プレイヤーの資産状況</h3>
@@ -110,7 +87,6 @@
         input.oninput = validate;
         container.appendChild(label);
         container.appendChild(input);
-        container.appendChild(document.createElement("br"));
       }
     }
 
@@ -139,13 +115,6 @@
         li.textContent = `${assets[key]}：${returns[key]}%`;
         list.appendChild(li);
       }
-
-      // 入力リセット
-      for (let key in assets) {
-        const input = document.getElementById(key);
-        if (input) input.value = 0;
-      }
-      document.getElementById("submitBtn").disabled = true;
     });
 
     socket.on("playerList", (players) => {
@@ -163,11 +132,14 @@
       }
     });
 
-    socket.on("eventApplied", (eventInfo) => {
+    socket.on("activeEvents", (events) => {
       const log = document.getElementById("eventLog");
-      const li = document.createElement("li");
-      li.textContent = `${eventInfo.name}：${eventInfo.details}`;
-      log.appendChild(li);
+      log.innerHTML = "";
+      for (let e of events) {
+        const li = document.createElement("li");
+        li.textContent = `${e.name}：${e.details}`;
+        log.appendChild(li);
+      }
     });
   </script>
 </body>

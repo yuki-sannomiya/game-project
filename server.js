@@ -1,108 +1,76 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ゲームマスター画面</title>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(to bottom, #f0f8ff, #e6f7ff);
-      color: #333;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      color: #007acc;
-    }
-    h2 {
-      color: #005580;
-      margin-top: 30px;
-    }
-    button {
-      background-color: #4caf50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      background: #ffffffcc;
-      margin: 5px auto;
-      padding: 10px;
-      border-radius: 8px;
-      width: 80%;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-<body>
-  <h1>ゲームマスター画面</h1>
-  <div id="eventButtons">
-    <h2>イベントを選択</h2>
-    <button onclick="applyEvent('yenHigh')">円高</button>
-    <button onclick="applyEvent('quake')">地震（東日本）</button>
-    <button onclick="applyEvent('boom')">好景気</button>
-    <!-- 追加のイベントボタンがあればここに追記 -->
-  </div>
-  <div>
-    <h2>プレイヤー一覧</h2>
-    <ul id="playersList"></ul>
-  </div>
-  <div>
-    <h2>現在発生中のイベント</h2>
-    <ul id="eventLog"></ul>
-  </div>
+const express = require("express");
+const app = express();
+const http = require("http").Server(app);
+const io = require("socket.io")(http);
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const activeEvents = [];
+app.use(express.static("public"));
 
-    socket.emit("joinAsGM");
+let players = [];
+let baseReturns = {
+  toyota: 2,
+  tepco: 1,
+  jr: 1.5,
+  mufg: 1.2,
+  mercari: 3,
+  bitcoin: 5,
+  jgb: 0.5,
+  usbond: 1.5,
+};
+let currentReturns = { ...baseReturns };
+let activeEvents = [];
 
-    socket.on("gmJoined", () => {
-      console.log("GMとして参加しました。");
-    });
+const eventEffects = {
+  yenHigh: { name: "円高進行", details: "円高によりトヨタ-2%", impact: { toyota: -2 } },
+  heatWave: { name: "猛暑・節電要請", details: "東京電力+2%", impact: { tepco: 2 } },
+  quake: { name: "首都圏で大地震", details: "JR-3%", impact: { jr: -3 } },
+  boom: { name: "米国景気回復", details: "MUFG+2%", impact: { mufg: 2 } },
+};
 
-    socket.on("playerList", (players) => {
-      const list = document.getElementById("playersList");
-      list.innerHTML = "";
-      for (let p of players) {
-        const li = document.createElement("li");
-        li.textContent = `${p.name}：${p.hasInvested ? "✅ 投資済み" : "⏳ 未投資"}`;
-        list.appendChild(li);
-      }
-    });
+io.on("connection", (socket) => {
+  socket.on("joinAsPlayer", (name) => {
+    const player = { id: socket.id, name, money: 100, hasInvested: false, investments: {} };
+    players.push(player);
+    socket.emit("updatedReturns", currentReturns);
+    io.emit("playerList", players);
+    socket.emit("activeEvents", activeEvents);
+  });
 
-    socket.on("eventApplied", (eventInfo) => {
-      activeEvents.push(eventInfo);
-      updateEventLog();
-    });
+  socket.on("submitInvestment", (investments) => {
+    const player = players.find(p => p.id === socket.id);
+    if (!player || player.hasInvested) return;
 
-    function updateEventLog() {
-      const log = document.getElementById("eventLog");
-      log.innerHTML = "";
-      for (let e of activeEvents) {
-        const li = document.createElement("li");
-        li.textContent = `${e.name}：${e.details}`;
-        log.appendChild(li);
-      }
+    player.investments = investments;
+    player.hasInvested = true;
+
+    const profit = Object.entries(investments).reduce((acc, [key, percent]) => {
+      return acc + (player.money * percent / 100) * (currentReturns[key] / 100);
+    }, 0);
+
+    player.money += profit;
+    io.emit("playerList", players);
+  });
+
+  socket.on("joinAsGM", () => {
+    socket.emit("gmJoined");
+    socket.emit("playerList", players);
+    socket.emit("activeEvents", activeEvents);
+  });
+
+  socket.on("applyEvent", (key) => {
+    const event = eventEffects[key];
+    if (!event) return;
+
+    activeEvents.push(event);
+    for (let asset in event.impact) {
+      currentReturns[asset] += event.impact[asset];
     }
 
-    function applyEvent(key) {
-      socket.emit("applyEvent", key);
-    }
-  </script>
-</body>
-</html>
+    io.emit("eventApplied", event);
+    io.emit("updatedReturns", currentReturns);
+    io.emit("activeEvents", activeEvents);
+  });
+});
+
+http.listen(3000, () => {
+  console.log("Server listening on port 3000");
+});
