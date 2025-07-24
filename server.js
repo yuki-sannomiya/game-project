@@ -24,16 +24,15 @@ app.get("/gm", (req, res) => {
 let players = [];
 let returns = {
   toyota: 0,
-  nintendo: 0,
   tepco: 0,
   jr: 0,
   mufg: 0,
-  tokio: 0,
-  mcdonalds: 0,
-  jgb: 0,
-  usbond: 0,
+  mercari: 0,
   bitcoin: 0,
+  jgb: 0,
+  usbond: 0
 };
+
 let activeEvents = [];
 
 io.on("connection", (socket) => {
@@ -59,16 +58,44 @@ io.on("connection", (socket) => {
     io.emit("playerList", players);
   });
 
-  socket.on("triggerEvent", (event) => {
-    activeEvents.push(event);
-    for (let asset in event.effect) {
-      if (returns[asset] !== undefined) {
-        returns[asset] += event.effect[asset];
-      }
+ socket.on("applyEvent", (eventKey) => {
+  const eventMap = {
+    yenHigh: {
+      name: "円高進行",
+      details: "円高により輸出企業が減益 (例: トヨタ -2%)",
+      effect: { toyota: -2 }
+    },
+    heatWave: {
+      name: "猛暑・節電要請",
+      details: "電力需要増で電力株が上昇 (例: 東京電力 +2%)",
+      effect: { tepco: 2 }
+    },
+    quake: {
+      name: "首都圏で大地震",
+      details: "株価下落・インフラ混乱 (例: JR -3%)",
+      effect: { jr: -3 }
+    },
+    boom: {
+      name: "米国景気回復",
+      details: "全体的に上昇傾向 (例: MUFG +2%)",
+      effect: { mufg: 2 }
     }
-    io.emit("activeEvents", activeEvents);
-    io.emit("updatedReturns", returns);
-  });
+  };
+
+  const event = eventMap[eventKey];
+  if (!event) return;
+
+  activeEvents.push(event);
+  for (let asset in event.effect) {
+    if (returns[asset] !== undefined) {
+      returns[asset] += event.effect[asset];
+    }
+  }
+
+  io.emit("activeEvents", activeEvents);
+  io.emit("updatedReturns", returns);
+});
+
 
   socket.on("disconnect", () => {
     players = players.filter((p) => p.id !== socket.id);
