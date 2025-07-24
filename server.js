@@ -45,20 +45,16 @@ io.on("connection", (socket) => {
     socket.emit("activeEvents", activeEvents);
   });
 
-  socket.on("submitInvestment", (investments) => {
-    const player = players.find((p) => p.id === socket.id);
-    if (!player) return;
+ socket.on("submitInvestment", (investments) => {
+  const player = players.find((p) => p.id === socket.id);
+  if (!player) return;
 
-    let total = 0;
-    for (let key in investments) {
-      total += (investments[key] / 100) * (1 + (returns[key] || 0) / 100);
-    }
+  player.investments = investments; // ← 投資内容を保存するだけ
+  io.emit("playerList", players);
+});
 
-    player.money *= total;
-    io.emit("playerList", players);
-  });
 
- socket.on("applyEvent", (eventKey) => {
+socket.on("applyEvent", (eventKey) => {
   const eventMap = {
     yenHigh: {
       name: "円高進行",
@@ -85,6 +81,7 @@ io.on("connection", (socket) => {
   const event = eventMap[eventKey];
   if (!event) return;
 
+  // 1. 利回りを変更
   activeEvents.push(event);
   for (let asset in event.effect) {
     if (returns[asset] !== undefined) {
@@ -92,9 +89,23 @@ io.on("connection", (socket) => {
     }
   }
 
+  // 2. 各プレイヤーの資産を更新（保存してあった investments を使用）
+  for (let player of players) {
+    if (!player.investments) continue; // 投資してなければスキップ
+    let total = 0;
+    for (let key in player.investments) {
+      const rate = (returns[key] || 0);
+      total += (player.investments[key] / 100) * (1 + rate / 100);
+    }
+    player.money *= total;
+    player.investments = null; // 投資内容をリセット（次ターンのため）
+  }
+
   io.emit("activeEvents", activeEvents);
   io.emit("updatedReturns", returns);
+  io.emit("playerList", players);
 });
+
 
 
   socket.on("disconnect", () => {
