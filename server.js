@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
@@ -12,6 +11,15 @@ const PORT = process.env.PORT || 3000;
 
 // 静的ファイルのルート設定
 app.use(express.static(path.join(__dirname, "public")));
+
+// 明示的に player.html と gm.html のルーティングを指定
+app.get("/player", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "player.html"));
+});
+
+app.get("/gm", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "gm.html"));
+});
 
 let players = [];
 let returns = {
