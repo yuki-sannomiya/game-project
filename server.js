@@ -1,76 +1,148 @@
-const express = require("express");
-const app = express();
-const http = require("http").Server(app);
-const io = require("socket.io")(http);
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プレイヤー画面</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom, #fff5f5, #ffe6e6);
+      color: #333;
+      padding: 20px;
+      text-align: center;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    #investmentInputs label {
+      display: block;
+      margin-top: 10px;
+    }
+    ul {
+      text-align: left;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>プレイヤー画面</h1>
+  <div id="nameInput">
+    <input type="text" id="name" placeholder="名前を入力">
+    <button onclick="join()">参加</button>
+  </div>
 
-app.use(express.static("public"));
+  <p id="moneyDisplay">現在の資産: 100万円</p>
 
-let players = [];
-let baseReturns = {
-  toyota: 2,
-  tepco: 1,
-  jr: 1.5,
-  mufg: 1.2,
-  mercari: 3,
-  bitcoin: 5,
-  jgb: 0.5,
-  usbond: 1.5,
-};
-let currentReturns = { ...baseReturns };
-let activeEvents = [];
+  <div id="investmentArea" style="display:none;">
+    <h2>資産を配分（合計100%）</h2>
+    <div id="investmentInputs"></div>
+    <button onclick="submitInvestments()" id="submitBtn" disabled>投資完了</button>
+  </div>
 
-const eventEffects = {
-  yenHigh: { name: "円高進行", details: "円高によりトヨタ-2%", impact: { toyota: -2 } },
-  heatWave: { name: "猛暑・節電要請", details: "東京電力+2%", impact: { tepco: 2 } },
-  quake: { name: "首都圏で大地震", details: "JR-3%", impact: { jr: -3 } },
-  boom: { name: "米国景気回復", details: "MUFG+2%", impact: { mufg: 2 } },
-};
+  <h3>現在の利回り</h3>
+  <ul id="returnsList"></ul>
 
-io.on("connection", (socket) => {
-  socket.on("joinAsPlayer", (name) => {
-    const player = { id: socket.id, name, money: 100, hasInvested: false, investments: {} };
-    players.push(player);
-    socket.emit("updatedReturns", currentReturns);
-    io.emit("playerList", players);
-    socket.emit("activeEvents", activeEvents);
-  });
+  <h3>発生したイベント</h3>
+  <ul id="eventLog"></ul>
 
-  socket.on("submitInvestment", (investments) => {
-    const player = players.find(p => p.id === socket.id);
-    if (!player || player.hasInvested) return;
+  <h3>プレイヤーの資産状況</h3>
+  <ul id="playersList"></ul>
 
-    player.investments = investments;
-    player.hasInvested = true;
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
 
-    const profit = Object.entries(investments).reduce((acc, [key, percent]) => {
-      return acc + (player.money * percent / 100) * (currentReturns[key] / 100);
-    }, 0);
+    const assets = {
+      toyota: "トヨタ自動車",
+      nintendo: "任天堂",
+      tepco: "東京電力HD",
+      jr: "JR東日本",
+      mufg: "MUFG",
+      tokio: "東京海上",
+      mcdonalds: "マクドナルド",
+      jgb: "日本国債",
+      usbond: "米国債",
+      bitcoin: "ビットコイン"
+    };
 
-    player.money += profit;
-    io.emit("playerList", players);
-  });
+    function join() {
+      const name = document.getElementById("name").value;
+      if (!name) return;
+      socket.emit("joinAsPlayer", name);
+      document.getElementById("nameInput").style.display = "none";
+      document.getElementById("investmentArea").style.display = "block";
 
-  socket.on("joinAsGM", () => {
-    socket.emit("gmJoined");
-    socket.emit("playerList", players);
-    socket.emit("activeEvents", activeEvents);
-  });
-
-  socket.on("applyEvent", (key) => {
-    const event = eventEffects[key];
-    if (!event) return;
-
-    activeEvents.push(event);
-    for (let asset in event.impact) {
-      currentReturns[asset] += event.impact[asset];
+      const container = document.getElementById("investmentInputs");
+      container.innerHTML = "";
+      for (let key in assets) {
+        const label = document.createElement("label");
+        label.textContent = assets[key] + "：";
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = 0;
+        input.max = 100;
+        input.value = 0;
+        input.id = key;
+        input.oninput = validate;
+        container.appendChild(label);
+        container.appendChild(input);
+      }
     }
 
-    io.emit("eventApplied", event);
-    io.emit("updatedReturns", currentReturns);
-    io.emit("activeEvents", activeEvents);
-  });
-});
+    function validate() {
+      let total = 0;
+      for (let key in assets) {
+        total += Number(document.getElementById(key).value);
+      }
+      document.getElementById("submitBtn").disabled = (total !== 100);
+    }
 
-http.listen(3000, () => {
-  console.log("Server listening on port 3000");
-});
+    function submitInvestments() {
+      const investments = {};
+      for (let key in assets) {
+        investments[key] = Number(document.getElementById(key).value);
+      }
+      socket.emit("submitInvestment", investments);
+      document.getElementById("submitBtn").disabled = true;
+    }
+
+    socket.on("updatedReturns", (returns) => {
+      const list = document.getElementById("returnsList");
+      list.innerHTML = "";
+      for (let key in returns) {
+        const li = document.createElement("li");
+        li.textContent = `${assets[key]}：${returns[key]}%`;
+        list.appendChild(li);
+      }
+    });
+
+    socket.on("playerList", (players) => {
+      const list = document.getElementById("playersList");
+      list.innerHTML = "";
+      for (let p of players) {
+        const li = document.createElement("li");
+        li.textContent = `${p.name}：${p.money.toFixed(2)}万円`;
+        list.appendChild(li);
+
+        if (p.name === document.getElementById("name").value) {
+          document.getElementById("moneyDisplay").textContent =
+            `現在の資産: ${p.money.toFixed(2)}万円`;
+        }
+      }
+    });
+
+    socket.on("activeEvents", (events) => {
+      const log = document.getElementById("eventLog");
+      log.innerHTML = "";
+      for (let e of events) {
+        const li = document.createElement("li");
+        li.textContent = `${e.name}：${e.details}`;
+        log.appendChild(li);
+      }
+    });
+  </script>
+</body>
+</html>
