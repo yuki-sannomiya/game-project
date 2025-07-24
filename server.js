@@ -1,148 +1,73 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>プレイヤー画面</title>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(to bottom, #fff5f5, #ffe6e6);
-      color: #333;
-      padding: 20px;
-      text-align: center;
+// server.js
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
+const path = require("path");
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+const PORT = process.env.PORT || 3000;
+
+// 静的ファイルのルート設定
+app.use(express.static(path.join(__dirname, "public")));
+
+let players = [];
+let returns = {
+  toyota: 0,
+  nintendo: 0,
+  tepco: 0,
+  jr: 0,
+  mufg: 0,
+  tokio: 0,
+  mcdonalds: 0,
+  jgb: 0,
+  usbond: 0,
+  bitcoin: 0,
+};
+let activeEvents = [];
+
+io.on("connection", (socket) => {
+  console.log("New player connected");
+
+  socket.on("joinAsPlayer", (name) => {
+    players.push({ id: socket.id, name, money: 100 });
+    io.emit("playerList", players);
+    socket.emit("updatedReturns", returns);
+    socket.emit("activeEvents", activeEvents);
+  });
+
+  socket.on("submitInvestment", (investments) => {
+    const player = players.find((p) => p.id === socket.id);
+    if (!player) return;
+
+    let total = 0;
+    for (let key in investments) {
+      total += (investments[key] / 100) * (1 + (returns[key] || 0) / 100);
     }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      font-size: 16px;
-    }
-    #investmentInputs label {
-      display: block;
-      margin-top: 10px;
-    }
-    ul {
-      text-align: left;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>プレイヤー画面</h1>
-  <div id="nameInput">
-    <input type="text" id="name" placeholder="名前を入力">
-    <button onclick="join()">参加</button>
-  </div>
 
-  <p id="moneyDisplay">現在の資産: 100万円</p>
+    player.money *= total;
+    io.emit("playerList", players);
+  });
 
-  <div id="investmentArea" style="display:none;">
-    <h2>資産を配分（合計100%）</h2>
-    <div id="investmentInputs"></div>
-    <button onclick="submitInvestments()" id="submitBtn" disabled>投資完了</button>
-  </div>
-
-  <h3>現在の利回り</h3>
-  <ul id="returnsList"></ul>
-
-  <h3>発生したイベント</h3>
-  <ul id="eventLog"></ul>
-
-  <h3>プレイヤーの資産状況</h3>
-  <ul id="playersList"></ul>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-
-    const assets = {
-      toyota: "トヨタ自動車",
-      nintendo: "任天堂",
-      tepco: "東京電力HD",
-      jr: "JR東日本",
-      mufg: "MUFG",
-      tokio: "東京海上",
-      mcdonalds: "マクドナルド",
-      jgb: "日本国債",
-      usbond: "米国債",
-      bitcoin: "ビットコイン"
-    };
-
-    function join() {
-      const name = document.getElementById("name").value;
-      if (!name) return;
-      socket.emit("joinAsPlayer", name);
-      document.getElementById("nameInput").style.display = "none";
-      document.getElementById("investmentArea").style.display = "block";
-
-      const container = document.getElementById("investmentInputs");
-      container.innerHTML = "";
-      for (let key in assets) {
-        const label = document.createElement("label");
-        label.textContent = assets[key] + "：";
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = 0;
-        input.max = 100;
-        input.value = 0;
-        input.id = key;
-        input.oninput = validate;
-        container.appendChild(label);
-        container.appendChild(input);
+  socket.on("triggerEvent", (event) => {
+    activeEvents.push(event);
+    for (let asset in event.effect) {
+      if (returns[asset] !== undefined) {
+        returns[asset] += event.effect[asset];
       }
     }
+    io.emit("activeEvents", activeEvents);
+    io.emit("updatedReturns", returns);
+  });
 
-    function validate() {
-      let total = 0;
-      for (let key in assets) {
-        total += Number(document.getElementById(key).value);
-      }
-      document.getElementById("submitBtn").disabled = (total !== 100);
-    }
+  socket.on("disconnect", () => {
+    players = players.filter((p) => p.id !== socket.id);
+    io.emit("playerList", players);
+  });
+});
 
-    function submitInvestments() {
-      const investments = {};
-      for (let key in assets) {
-        investments[key] = Number(document.getElementById(key).value);
-      }
-      socket.emit("submitInvestment", investments);
-      document.getElementById("submitBtn").disabled = true;
-    }
-
-    socket.on("updatedReturns", (returns) => {
-      const list = document.getElementById("returnsList");
-      list.innerHTML = "";
-      for (let key in returns) {
-        const li = document.createElement("li");
-        li.textContent = `${assets[key]}：${returns[key]}%`;
-        list.appendChild(li);
-      }
-    });
-
-    socket.on("playerList", (players) => {
-      const list = document.getElementById("playersList");
-      list.innerHTML = "";
-      for (let p of players) {
-        const li = document.createElement("li");
-        li.textContent = `${p.name}：${p.money.toFixed(2)}万円`;
-        list.appendChild(li);
-
-        if (p.name === document.getElementById("name").value) {
-          document.getElementById("moneyDisplay").textContent =
-            `現在の資産: ${p.money.toFixed(2)}万円`;
-        }
-      }
-    });
-
-    socket.on("activeEvents", (events) => {
-      const log = document.getElementById("eventLog");
-      log.innerHTML = "";
-      for (let e of events) {
-        const li = document.createElement("li");
-        li.textContent = `${e.name}：${e.details}`;
-        log.appendChild(li);
-      }
-    });
-  </script>
-</body>
-</html>
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
