@@ -9,10 +9,8 @@ const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
 
-// 静的ファイルのルート設定
 app.use(express.static(path.join(__dirname, "public")));
 
-// 明示的に player.html と gm.html のルーティングを指定
 app.get("/player", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "player.html"));
 });
@@ -45,106 +43,65 @@ io.on("connection", (socket) => {
     socket.emit("activeEvents", activeEvents);
   });
 
- socket.on("submitInvestment", (investments) => {
-  const player = players.find((p) => p.id === socket.id);
-  if (!player) return;
+  socket.on("submitInvestment", (investments) => {
+    const player = players.find((p) => p.id === socket.id);
+    if (!player) return;
+    player.investments = investments;
+    io.emit("playerList", players);
+  });
 
-  player.investments = investments; // ← 投資内容を保存するだけ
-  io.emit("playerList", players);
-});
+  socket.on("applyEvent", (eventKey) => {
+    const eventMap = {
+      yenHigh: {
+        name: "円高進行",
+        details: "円高により輸出企業が減益 (例: トヨタ -2%)",
+        effect: { toyota: -2 }
+      },
+      heatWave: {
+        name: "猛暑・節電要請",
+        details: "電力需要増で電力株が上昇 (例: 東京電力 +2%)",
+        effect: { tepco: 2 }
+      },
+      quake: {
+        name: "首都圏で大地震",
+        details: "株価下落・インフラ混乱 (例: JR -3%)",
+        effect: { jr: -3 }
+      },
+      boom: {
+        name: "米国景気回復",
+        details: "全体的に上昇傾向 (例: MUFG +2%)",
+        effect: { mufg: 2 }
+      }
+    };
 
+    const event = eventMap[eventKey];
+    if (!event) return;
 
-socket.on("applyEvent", (eventKey) => {
-  const eventMap = {
-    yenHigh: {
-      name: "円高進行",
-      details: "円高により輸出企業が減益 (例: トヨタ -2%)",
-      effect: { toyota: -2 }
-    },
-    heatWave: {
-      name: "猛暑・節電要請",
-      details: "電力需要増で電力株が上昇 (例: 東京電力 +2%)",
-      effect: { tepco: 2 }
-    },
-    quake: {
-      name: "首都圏で大地震",
-      details: "株価下落・インフラ混乱 (例: JR -3%)",
-      effect: { jr: -3 }
-    },
-    boom: {
-      name: "米国景気回復",
-      details: "全体的に上昇傾向 (例: MUFG +2%)",
-      effect: { mufg: 2 }
+    activeEvents.push(event);
+    for (let asset in event.effect) {
+      if (returns[asset] !== undefined) {
+        returns[asset] += event.effect[asset];
+      }
     }
-  };
 
-  const event = eventMap[eventKey];
-  if (!event) return;
+    io.emit("activeEvents", activeEvents);
+    io.emit("updatedReturns", returns);
+  });
 
-
-// 投資を保存するだけ（変更なし）
-socket.on("submitInvestment", (investments) => {
-  const player = players.find((p) => p.id === socket.id);
-  if (!player) return;
-
-  player.investments = investments;
-  io.emit("playerList", players);
-});
-
-// イベントの反映（利回りのみ変更、資産は変動させない）
-socket.on("applyEvent", (eventKey) => {
-  const eventMap = {
-    yenHigh: {
-      name: "円高進行",
-      details: "円高により輸出企業が減益 (例: トヨタ -2%)",
-      effect: { toyota: -2 }
-    },
-    heatWave: {
-      name: "猛暑・節電要請",
-      details: "電力需要増で電力株が上昇 (例: 東京電力 +2%)",
-      effect: { tepco: 2 }
-    },
-    quake: {
-      name: "首都圏で大地震",
-      details: "株価下落・インフラ混乱 (例: JR -3%)",
-      effect: { jr: -3 }
-    },
-    boom: {
-      name: "米国景気回復",
-      details: "全体的に上昇傾向 (例: MUFG +2%)",
-      effect: { mufg: 2 }
+  socket.on("finalizeRound", () => {
+    for (let player of players) {
+      if (!player.investments) continue;
+      let total = 0;
+      for (let key in player.investments) {
+        const rate = returns[key] || 0;
+        total += (player.investments[key] / 100) * (1 + rate / 100);
+      }
+      player.money *= total;
+      player.investments = null;
     }
-  };
 
-  const event = eventMap[eventKey];
-  if (!event) return;
-
-  activeEvents.push(event);
-  for (let asset in event.effect) {
-    if (returns[asset] !== undefined) {
-      returns[asset] += event.effect[asset];
-    }
-  }
-
-  io.emit("activeEvents", activeEvents);
-  io.emit("updatedReturns", returns);
-});
-
-// 新しく「イベントを適用し終えたら利回りで資産変動させる」処理
-socket.on("finalizeRound", () => {
-  for (let player of players) {
-    if (!player.investments) continue;
-    let total = 0;
-    for (let key in player.investments) {
-      const rate = returns[key] || 0;
-      total += (player.investments[key] / 100) * (1 + rate / 100);
-    }
-    player.money *= total;
-    player.investments = null;
-  }
-
-  io.emit("playerList", players);
-});
+    io.emit("playerList", players);
+  });
 
   socket.on("disconnect", () => {
     players = players.filter((p) => p.id !== socket.id);

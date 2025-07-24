@@ -48,14 +48,22 @@
 </head>
 <body>
   <h1>ゲームマスター画面</h1>
+
   <div id="eventButtons">
     <h2>イベントを選択</h2>
     <div id="eventOptions"></div>
   </div>
+
+  <div>
+    <h2>ラウンド操作</h2>
+    <button onclick="finalizeRound()">ラウンドを確定する</button>
+  </div>
+
   <div>
     <h2>プレイヤー一覧</h2>
     <ul id="playersList"></ul>
   </div>
+
   <div>
     <h2>現在発生中のイベント</h2>
     <ul id="eventLog"></ul>
@@ -71,7 +79,6 @@
       { key: 'heatWave', name: '猛暑・節電要請', details: '電力需要増で電力株が上昇 (例: 東京電力 +2%)' },
       { key: 'quake', name: '首都圏で大地震', details: '株価下落・インフラ混乱 (例: JR -3%)' },
       { key: 'boom', name: '米国景気回復', details: '全体的に上昇傾向 (例: MUFG +2%)' }
-      // 必要に応じてさらに追加
     ];
 
     socket.emit("joinAsGM");
@@ -107,6 +114,10 @@
 
     function applyEvent(key) {
       socket.emit("applyEvent", key);
+    }
+
+    function finalizeRound() {
+      socket.emit("finalizeRound");
     }
 
     const container = document.getElementById("eventOptions");
