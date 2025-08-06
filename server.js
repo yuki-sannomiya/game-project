@@ -91,13 +91,19 @@ io.on("connection", (socket) => {
   socket.on("finalizeRound", () => {
     for (let player of players) {
       if (!player.investments) continue;
-      let total = 0;
-      for (let key in player.investments) {
-        const rate = returns[key] || 0;
-        total += (player.investments[key] / 100) * (1 + rate / 100);
+
+      const investment = player.investments;
+      let updatedTotal = 0;
+
+      for (let key in investment) {
+        const ratio = investment[key] / 100;
+        const returnRate = (returns[key] || 0) / 100;
+        updatedTotal += ratio * (1 + returnRate);
       }
-      player.money *= total;
-      player.investments = null;
+
+      // 💰 資産に反映（全額ベット）
+      player.money = player.money * updatedTotal;
+      player.investments = null;  // 次のターンのためにリセット
     }
 
     io.emit("playerList", players);
