@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>プレイヤー画面</title>
   <style>
     body {
@@ -37,7 +37,7 @@
   <p id="moneyDisplay">現在の資産: 100万円</p>
 
   <div id="investmentArea" style="display:none;">
-    <h2>資産を配分（合計100%）</h2>
+    <h2 id="instruction">資産を配分（合計〇〇万円）</h2>
     <div id="investmentInputs"></div>
     <button onclick="submitInvestments()" id="submitBtn" disabled>投資完了</button>
   </div>
@@ -66,24 +66,37 @@
       usbond: "米国債"
     };
 
+    let currentMoney = 100;
+    let round = 1;
+
     function join() {
       const name = document.getElementById("name").value;
       if (!name) return;
+
       socket.emit("joinAsPlayer", name);
       document.getElementById("nameInput").style.display = "none";
       document.getElementById("investmentArea").style.display = "block";
+      renderInvestmentInputs();
+    }
 
+    function renderInvestmentInputs() {
       const container = document.getElementById("investmentInputs");
+      const instruction = document.getElementById("instruction");
       container.innerHTML = "";
+      instruction.textContent = `資産を配分（合計 ${currentMoney.toFixed(2)} 万円）`;
+
       for (let key in assets) {
         const label = document.createElement("label");
         label.textContent = assets[key] + "：";
+
         const input = document.createElement("input");
         input.type = "number";
         input.min = 0;
-        input.max = 100;
         input.value = 0;
         input.id = key;
+        input.max = currentMoney.toFixed(2);
+        input.placeholder = `最大 ${currentMoney.toFixed(2)} 万円`;
+
         input.oninput = validate;
         container.appendChild(label);
         container.appendChild(input);
@@ -95,7 +108,7 @@
       for (let key in assets) {
         total += Number(document.getElementById(key).value);
       }
-      document.getElementById("submitBtn").disabled = (total !== 100);
+      document.getElementById("submitBtn").disabled = (total.toFixed(2) != currentMoney.toFixed(2));
     }
 
     function submitInvestments() {
@@ -103,8 +116,12 @@
       for (let key in assets) {
         investments[key] = Number(document.getElementById(key).value);
       }
+
       socket.emit("submitInvestment", investments);
       document.getElementById("submitBtn").disabled = true;
+
+      round++;
+      renderInvestmentInputs();
     }
 
     socket.on("updatedReturns", (returns) => {
@@ -120,16 +137,20 @@
     socket.on("playerList", (players) => {
       const list = document.getElementById("playersList");
       list.innerHTML = "";
+
       for (let p of players) {
         const li = document.createElement("li");
         li.textContent = `${p.name}：${p.money.toFixed(2)}万円`;
         list.appendChild(li);
 
         if (p.name === document.getElementById("name").value) {
+          currentMoney = p.money;
           document.getElementById("moneyDisplay").textContent =
             `現在の資産: ${p.money.toFixed(2)}万円`;
         }
       }
+
+      renderInvestmentInputs(); // プレイヤー一覧受信時にも入力更新
     });
 
     socket.on("activeEvents", (events) => {
