@@ -37,16 +37,18 @@ io.on("connection", (socket) => {
   console.log("New player connected");
 
   socket.on("joinAsPlayer", (name) => {
-    players.push({ id: socket.id, name, money: 100 });
-    io.emit("playerList", players);
-    socket.emit("updatedReturns", returns);
-    socket.emit("activeEvents", activeEvents);
-  });
+  players.push({ id: socket.id, name, money: 100, hasInvested: false });
+  io.emit("playerList", players);
+  socket.emit("updatedReturns", returns);
+  socket.emit("activeEvents", activeEvents);
+});
+
 
   socket.on("submitInvestment", (investments) => {
     const player = players.find((p) => p.id === socket.id);
     if (!player) return;
     player.investments = investments;
+    player.hasInvested = true; 
     io.emit("playerList", players);
   });
 
@@ -88,26 +90,29 @@ io.on("connection", (socket) => {
     io.emit("updatedReturns", returns);
   });
 
-  socket.on("finalizeRound", () => {
-    for (let player of players) {
-      if (!player.investments) continue;
+socket.on("finalizeRound", () => {
+  for (let player of players) {
+    if (!player.investments) continue;
 
-      const investment = player.investments;
-      let updatedTotal = 0;
+    const investment = player.investments;
+    let totalAfterReturn = 0;
 
-      for (let key in investment) {
-        const ratio = investment[key] / 100;
-        const returnRate = (returns[key] || 0) / 100;
-        updatedTotal += ratio * (1 + returnRate);
-      }
-
-      // 💰 資産に反映（全額ベット）
-      player.money = player.money * updatedTotal;
-      player.investments = null;  // 次のターンのためにリセット
+    for (let key in investment) {
+      const amount = investment[key]; // 金額
+      const returnRate = (returns[key] || 0) / 100;
+      totalAfterReturn += amount * (1 + returnRate);
     }
 
-    io.emit("playerList", players);
-  });
+    player.money = totalAfterReturn;
+
+    // リセット処理
+    player.investments = null;
+    player.hasInvested = false; // ← ここで未投資に戻す！
+  }
+
+  io.emit("playerList", players);
+});
+
 
   socket.on("disconnect", () => {
     players = players.filter((p) => p.id !== socket.id);
