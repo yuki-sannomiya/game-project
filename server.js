@@ -55,27 +55,58 @@ io.on("connection", (socket) => {
 
   socket.on("applyEvent", (eventKey) => {
     const eventMap = {
-      yenHigh: {
-        name: "円高進行",
-        details: "円高により輸出企業が減益 (例: トヨタ -2%)",
-        effect: { toyota: -2 }
-      },
-      heatWave: {
-        name: "猛暑・節電要請",
-        details: "電力需要増で電力株が上昇 (例: 東京電力 +2%)",
-        effect: { tepco: 2 }
-      },
-      quake: {
-        name: "首都圏で大地震",
-        details: "株価下落・インフラ混乱 (例: JR -3%)",
-        effect: { jr: -3 }
-      },
-      boom: {
-        name: "米国景気回復",
-        details: "全体的に上昇傾向 (例: MUFG +2%)",
-        effect: { mufg: 2 }
-      }
-    };
+  quake: {
+    name: "首都圏大地震",
+    details: "電車が止まり停電。経済にも大打撃",
+    effect: { jr: -5, tepco: -5, jgb: 2 }
+  },
+  heatWave: {
+    name: "猛暑と電力不足",
+    details: "電力需要急増。東電は好調だがJRは減便",
+    effect: { tepco: 4, jr: -2, inpex: 2 }
+  },
+  oilShock: {
+    name: "世界的な原油高",
+    details: "石油価格高騰。エネルギー関連は上昇",
+    effect: { inpex: 4, toyota: -3, tepco: -1 }
+  },
+  yenHigh: {
+    name: "円高進行",
+    details: "円の価値が上がり、輸出が打撃を受ける",
+    effect: { toyota: -4, usbond: -2, mufg: -1 }
+  },
+  nintendoHit: {
+    name: "任天堂の新作が大ヒット",
+    details: "世界中で売れて株価急騰！",
+    effect: { nintendo: 5, mercari: 2 }
+  },
+  recession: {
+    name: "景気後退ムード",
+    details: "投資家が慎重に。債券が注目される",
+    effect: { mufg: -2, toyota: -2, jgb: 2 }
+  },
+  remoteWork: {
+    name: "リモートワーク拡大",
+    details: "通勤が減って電車が空いてる",
+    effect: { jr: -3, mercari: 3 }
+  },
+  cryptoCrash: {
+    name: "仮想通貨が暴落",
+    details: "ビットコインが大きく下がった",
+    effect: { bitcoin: -5, mufg: -1 }
+  },
+  usBoom: {
+    name: "米国景気回復",
+    details: "米国の好景気で株価上昇",
+    effect: { usbond: 2, toyota: 1, mufg: 1 }
+  },
+  noEvent: {
+    name: "特になし",
+    details: "今日は穏やかな1日でした",
+    effect: {}
+  }
+};
+
 
     const event = eventMap[eventKey];
     if (!event) return;
