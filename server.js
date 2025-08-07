@@ -50,6 +50,7 @@ io.on("connection", (socket) => {
     const player = players.find((p) => p.id === socket.id);
     if (!player) return;
     player.investments = investments;
+    player.hasInvested = true;
     io.emit("playerList", players);
   });
 
@@ -140,6 +141,8 @@ socket.on("finalizeRound", () => {
 
     // 投資リセット
     player.investments = null;
+
+    player.hasInvested = false;
   }
 
   io.emit("playerList", players);
