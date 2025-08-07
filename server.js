@@ -21,15 +21,18 @@ app.get("/gm", (req, res) => {
 
 let players = [];
 let returns = {
-  toyota: 0,
-  tepco: 0,
-  jr: 0,
-  mufg: 0,
-  mercari: 0,
-  bitcoin: 0,
-  jgb: 0,
-  usbond: 0
+  toyota: 2.0,
+  tepco: 1.0,
+  jr: 0.0,
+  mufg: 1.5,
+  mercari: 3.0,
+  bitcoin: 5.0,
+  jgb: 0.3,
+  usbond: 0.8,
+  inpex: 2.5,        // 追加
+  nintendo: 1.8      // 追加
 };
+
 
 let activeEvents = [];
 
@@ -37,18 +40,16 @@ io.on("connection", (socket) => {
   console.log("New player connected");
 
   socket.on("joinAsPlayer", (name) => {
-  players.push({ id: socket.id, name, money: 100, hasInvested: false });
-  io.emit("playerList", players);
-  socket.emit("updatedReturns", returns);
-  socket.emit("activeEvents", activeEvents);
-});
-
+    players.push({ id: socket.id, name, money: 100 });
+    io.emit("playerList", players);
+    socket.emit("updatedReturns", returns);
+    socket.emit("activeEvents", activeEvents);
+  });
 
   socket.on("submitInvestment", (investments) => {
     const player = players.find((p) => p.id === socket.id);
     if (!player) return;
     player.investments = investments;
-    player.hasInvested = true; 
     io.emit("playerList", players);
   });
 
@@ -98,16 +99,16 @@ socket.on("finalizeRound", () => {
     let totalAfterReturn = 0;
 
     for (let key in investment) {
-      const amount = investment[key]; // 金額
+      const amount = investment[key]; // ← これは金額
       const returnRate = (returns[key] || 0) / 100;
       totalAfterReturn += amount * (1 + returnRate);
     }
 
+    // 💰 新しい資産を代入
     player.money = totalAfterReturn;
 
-    // リセット処理
+    // 投資リセット
     player.investments = null;
-    player.hasInvested = false; // ← ここで未投資に戻す！
   }
 
   io.emit("playerList", players);

@@ -55,16 +55,18 @@
   <script>
     const socket = io();
 
-    const assets = {
-      toyota: "トヨタ自動車",
-      tepco: "東京電力HD",
-      jr: "JR東日本",
-      mufg: "MUFG",
-      mercari: "メルカリ",
-      bitcoin: "ビットコイン",
-      jgb: "日本国債",
-      usbond: "米国債"
-    };
+ const assets = {
+  toyota: "トヨタ自動車",
+  tepco: "東京電力HD",
+  jr: "JR東日本",
+  mufg: "MUFG",
+  mercari: "メルカリ",
+  bitcoin: "ビットコイン",
+  jgb: "日本国債",
+  usbond: "米国債",
+  inpex: "INPEX",          // 追加
+  nintendo: "任天堂"        // 追加
+};
 
     let currentMoney = 100;
     let round = 1;
