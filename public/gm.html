@@ -64,15 +64,58 @@
     <ul id="playersList"></ul>
   </div>
 
+<div>
+  <h2>現在の資産グラフ</h2>
+  <canvas id="moneyChart" height="140"></canvas>
+</div>
+
   <div>
     <h2>現在発生中のイベント</h2>
     <ul id="eventLog"></ul>
   </div>
 
- <script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  const activeEvents = [];
+
+  <!-- ライブラリ読み込み -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    const socket = io();
+    const activeEvents = [];
+
+    // ===== Chart.js 初期化 =====
+    let moneyChart;
+    function initMoneyChart() {
+      const el = document.getElementById("moneyChart");
+      if (!el) return;
+      const ctx = el.getContext("2d");
+      moneyChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "現在の資産（万円）",
+            data: [],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: true } }
+        }
+      });
+    }
+    function updateMoneyChart(players) {
+      if (!moneyChart) return;
+      const sorted = [...players].sort((a, b) => b.money - a.money);
+      moneyChart.data.labels = sorted.map(p => p.name);
+      moneyChart.data.datasets[0].data = sorted.map(p => Number(p.money?.toFixed?.(2) ?? 0));
+      moneyChart.update();
+    }
+    initMoneyChart();
+    // ==========================
 
   // ✅ server.js の eventMap とキーを完全一致
   const allEvents = [
@@ -114,6 +157,8 @@
       li.textContent = `${p.name}：${p.hasInvested ? "✅ 投資済み" : "⏳ 未投資"}`;
       list.appendChild(li);
     }
+
+ updateMoneyChart(players);
   });
 
   // ✅ サーバの activeEvents をそのまま反映（初期・更新どちらもOK）

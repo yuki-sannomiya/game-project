@@ -47,6 +47,9 @@
 
   <h3>発生したイベント</h3>
   <ul id="eventLog"></ul>
+  
+  <h3>今回のイベント効果</h3>
+  <ul id="effectLog"></ul>
 
   <h3>プレイヤーの資産状況</h3>
   <ul id="playersList"></ul>
@@ -193,16 +196,38 @@ socket.on("playerList", (players) => {
     validate();
   }
 });
-
 socket.on("activeEvents", (events) => {
   const log = document.getElementById("eventLog");
   log.innerHTML = "";
-  for (let e of events) {
+  for (const e of events) {
     const li = document.createElement("li");
     li.textContent = `${e.name}：${e.details}`;
     log.appendChild(li);
   }
 });
+
+socket.on("eventApplied", (evt) => {
+  const log = document.getElementById("effectLog");
+  if (!log) return;
+
+  const parts = [];
+  for (const key in evt.effect) {
+    const delta = evt.effect[key];
+    if (!delta) continue; // 0%は省略
+    const label = assets[key] || key;
+    const sign = delta > 0 ? "+" : "";
+    const color = delta > 0 ? "green" : (delta < 0 ? "red" : "inherit");
+    parts.push(`<span style="color:${color}">${label}：${sign}${delta}%</span>`);
+  }
+
+  const li = document.createElement("li");
+  li.innerHTML = `【${evt.name}】 ${parts.join(" / ")}`;
+  log.prepend(li);
+
+  // 任意：最新5件だけ残す
+  while (log.children.length > 5) log.removeChild(log.lastChild);
+});
+
   </script>
 </body>
 </html>
