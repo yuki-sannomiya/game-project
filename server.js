@@ -22,15 +22,15 @@ app.get("/gm", (req, res) => {
 let players = [];
 let returns = {
   toyota: 2.0,
-  tepco: 1.0,
-  jr: 0.0,
+  tepco: 1.5,
+  jr: 2.0,
   mufg: 1.5,
   mercari: 3.0,
-  bitcoin: 5.0,
-  jgb: 0.3,
-  usbond: 0.8,
+  bitcoin: 0,
+  jgb: 1.0,
+  usbond: 1.5,
   inpex: 2.5,        // 追加
-  nintendo: 1.8      // 追加
+  nintendo: 2.3      // 追加
 };
 
 
@@ -119,7 +119,7 @@ socket.on("applyEvent", (eventKey) => {
     usSlowdown: {
       name: "米国景気減速懸念",
       details: "リスクオフ・利下げ観測",
-      effect: { toyota: -1, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -2, jgb: 1, usbond: 1.5, inpex: 0, nintendo: -1.5 }
+      effect: { toyota: -1, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -3, jgb: 1, usbond: 1.5, inpex: 0, nintendo: -1.5 }
     },
     tourismRebound: {
       name: "観光需要回復",
@@ -149,12 +149,12 @@ socket.on("applyEvent", (eventKey) => {
     nintendoHit: {
       name: "任天堂の新作が大ヒット",
       details: "ソフト販売＆IP収益↑",
-      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 0, mercari: 3, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
+      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 0, mercari: 2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
     },
     nintendoMovie: {
       name: "任天堂が大型映画公開",
       details: "IP露出拡大・関連消費↑",
-      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 1, mercari: 2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
+      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 1, mercari: 1, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 1 }
     },
     consumerSpendingSlump: {
       name: "消費者支出減退",
