@@ -55,6 +55,9 @@
   <script>
     const socket = io();
 
+let isTyping = false; // ← これを追加
+
+
  const assets = {
   toyota: "トヨタ自動車",
   tepco: "東京電力HD",
@@ -81,29 +84,46 @@
       renderInvestmentInputs();
     }
 
-    function renderInvestmentInputs() {
-      const container = document.getElementById("investmentInputs");
-      const instruction = document.getElementById("instruction");
-      container.innerHTML = "";
-      instruction.textContent = `資産を配分（合計 ${currentMoney.toFixed(2)} 万円）`;
 
-      for (let key in assets) {
-        const label = document.createElement("label");
-        label.textContent = assets[key] + "：";
+function renderInvestmentInputs(preserve = false) {
+  const container = document.getElementById("investmentInputs");
+  const instruction = document.getElementById("instruction");
 
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = 0;
-        input.value = 0;
-        input.id = key;
-        input.max = currentMoney.toFixed(2);
-        input.placeholder = `最大 ${currentMoney.toFixed(2)} 万円`;
-
-        input.oninput = validate;
-        container.appendChild(label);
-        container.appendChild(input);
-      }
+  // いまの入力値を必要なら保存
+  const saved = {};
+  if (preserve) {
+    for (let key in assets) {
+      const el = document.getElementById(key);
+      if (el) saved[key] = el.value;
     }
+  }
+
+  container.innerHTML = "";
+  instruction.textContent = `資産を配分（合計 ${currentMoney.toFixed(2)} 万円）`;
+
+  for (let key in assets) {
+    const label = document.createElement("label");
+    label.textContent = assets[key] + "：";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = 0;
+    input.step = "0.01";              // 小数OK
+    input.value = preserve && saved[key] != null ? saved[key] : 0;
+    input.id = key;
+    input.max = currentMoney.toFixed(2);
+    input.placeholder = `最大 ${currentMoney.toFixed(2)} 万円`;
+
+    // 入力中かどうかを検出
+    input.addEventListener("focus", () => (isTyping = true));
+    input.addEventListener("blur", () => (isTyping = false));
+
+    input.oninput = validate;
+    container.appendChild(label);
+    container.appendChild(input);
+  }
+  validate();
+}
 
     function validate() {
       let total = 0;
@@ -113,19 +133,26 @@
       document.getElementById("submitBtn").disabled = (total.toFixed(2) != currentMoney.toFixed(2));
     }
 
-    function submitInvestments() {
-      const investments = {};
-      for (let key in assets) {
-        investments[key] = Number(document.getElementById(key).value);
-      }
+ function submitInvestments() {
+  const investments = {};
+  for (let key in assets) {
+    investments[key] = Number(document.getElementById(key).value);
+  }
 
-      socket.emit("submitInvestment", investments);
-      document.getElementById("submitBtn").disabled = true;
+  socket.emit("submitInvestment", investments);
+  document.getElementById("submitBtn").disabled = true;
 
-      round++;
-      renderInvestmentInputs();
-    }
+  // 任意：送信後は編集不可にして誤操作防止
+  for (let key in assets) {
+    const el = document.getElementById(key);
+    if (el) el.readOnly = true;
+  }
 
+  round++;
+  // ❌ renderInvestmentInputs(); は呼ばない
+}
+
+    
     socket.on("updatedReturns", (returns) => {
       const list = document.getElementById("returnsList");
       list.innerHTML = "";
@@ -136,34 +163,46 @@
       }
     });
 
-    socket.on("playerList", (players) => {
-      const list = document.getElementById("playersList");
-      list.innerHTML = "";
+socket.on("playerList", (players) => {
+  const list = document.getElementById("playersList");
+  list.innerHTML = "";
 
-      for (let p of players) {
-        const li = document.createElement("li");
-        li.textContent = `${p.name}：${p.money.toFixed(2)}万円`;
-        list.appendChild(li);
+  let myMoneyBefore = currentMoney;
+  const myName = document.getElementById("name").value || "";
 
-        if (p.name === document.getElementById("name").value) {
-          currentMoney = p.money;
-          document.getElementById("moneyDisplay").textContent =
-            `現在の資産: ${p.money.toFixed(2)}万円`;
-        }
-      }
+  for (let p of players) {
+    const li = document.createElement("li");
+    li.textContent = `${p.name}：${p.money.toFixed(2)}万円`;
+    list.appendChild(li);
 
-      renderInvestmentInputs(); // プレイヤー一覧受信時にも入力更新
-    });
+    if (p.name === myName) {
+      currentMoney = p.money;
+      document.getElementById("moneyDisplay").textContent =
+        `現在の資産: ${p.money.toFixed(2)}万円`;
+    }
+  }
 
-    socket.on("activeEvents", (events) => {
-      const log = document.getElementById("eventLog");
-      log.innerHTML = "";
-      for (let e of events) {
-        const li = document.createElement("li");
-        li.textContent = `${e.name}：${e.details}`;
-        log.appendChild(li);
-      }
-    });
+  if (currentMoney !== myMoneyBefore) {
+    // 資産が変わった＝新ラウンド開始。入力を再度有効化
+    renderInvestmentInputs(isTyping);
+    for (let key in assets) {
+      const el = document.getElementById(key);
+      if (el) el.readOnly = false;
+    }
+    document.getElementById("submitBtn").disabled = true; // 配分完了まで無効
+    validate();
+  }
+});
+
+socket.on("activeEvents", (events) => {
+  const log = document.getElementById("eventLog");
+  log.innerHTML = "";
+  for (let e of events) {
+    const li = document.createElement("li");
+    li.textContent = `${e.name}：${e.details}`;
+    log.appendChild(li);
+  }
+});
   </script>
 </body>
 </html>
