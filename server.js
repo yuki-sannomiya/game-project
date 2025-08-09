@@ -58,12 +58,46 @@ socket.on("joinAsPlayer", (name) => {
  
 
   socket.on("submitInvestment", (investments) => {
-    const player = players.find((p) => p.id === socket.id);
-    if (!player) return;
-    player.investments = investments;
-    player.hasInvested = true;
-    io.emit("playerList", players);
-  });
+  const player = players.find((p) => p.id === socket.id);
+  if (!player) return;
+  if (player.hasInvested) return; // すでに投資済みなら無視（任意）
+
+  const keys = Object.keys(returns);
+  const clean = {};
+  let total = 0;
+
+ // 1) サニタイズ：NaN/負数は0に
+  for (const k of keys) {
+    const v = Number(investments?.[k]);
+    const num = Number.isFinite(v) && v > 0 ? v : 0;
+    clean[k] = num;
+    total += num;
+  }
+
+  // 2) 合計ズレがあるなら比例配分でスケール + 3) 残差補正
+  const EPS = 0.01; // 万円の許容誤差
+  if (Math.abs(total - player.money) > EPS && total > 0) {
+    const scale = player.money / total;
+    let sum = 0, maxKey = keys[0];
+
+    // 比例配分しつつ四捨五入(小数2桁)して合計を集計、最大項目も記録
+    for (const k of keys) {
+      clean[k] = Number((clean[k] * scale).toFixed(2));
+      if (clean[k] > clean[maxKey]) maxKey = k;
+      sum += clean[k];
+    }
+
+    // 丸めによる残差を最大項目へ寄せて合計をピタリに
+    const diff = Number((player.money - sum).toFixed(2));
+    clean[maxKey] = Number((clean[maxKey] + diff).toFixed(2));
+  }
+
+  // 4) 受理
+  player.investments = clean;
+  player.hasInvested = true;
+  io.emit("playerList", players);
+});
+
 
 socket.on("applyEvent", (eventKey) => {
   const eventMap = {
@@ -184,7 +218,11 @@ socket.on("applyEvent", (eventKey) => {
 
     io.emit("activeEvents", activeEvents);
     io.emit("updatedReturns", returns);
-    io.emit("eventApplied", { name: event.name, details: event.details });
+     io.emit("eventApplied", {
+    name: event.name,
+    details: event.details,
+    effect: event.effect
+  });
   });
 
 socket.on("finalizeRound", () => {
@@ -217,6 +255,7 @@ socket.on("finalizeRound", () => {
     players = players.filter((p) => p.id !== socket.id);
     io.emit("playerList", players);
   });
+
 });
 
 server.listen(PORT, () => {
