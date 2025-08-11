@@ -3,7 +3,15 @@ const http = require("http");
 const socketIo = require("socket.io");
 const path = require("path");
 
+// ゲーム名（Renderの環境変数で設定できる）
+const GAME_NAME = process.env.GAME_NAME || "local";
+console.log(`Starting Investment Game - ${GAME_NAME}`);
+
+// 確認用のエンドポイント
+// → https://<URL>/env にアクセスすると現在のゲーム名が見れる
 const app = express();
+app.get("/env", (_, res) => res.json({ game: GAME_NAME }));
+
 const server = http.createServer(app);
 const io = socketIo(server);
 

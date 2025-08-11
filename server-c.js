@@ -100,108 +100,119 @@ socket.on("joinAsPlayer", (name) => {
 
 
 socket.on("applyEvent", (eventKey) => {
-  const eventMap = {
-    heatWave: {
-      name: "猛暑と電力不足",
-      details: "電力需要↑・外出減",
-      effect: { toyota: 0, tepco: 3, jr: -1, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 3, nintendo: 0 }
-    },
-    globalOilRise: {
-      name: "世界的な原油高",
-      details: "資源価格上昇",
-      effect: { toyota: -0.5, tepco: -1, jr: 0, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 2.5, nintendo: 0 }
-    },
-    fuelPriceDrop: {
-      name: "燃料価格下落",
-      details: "原油安・コスト低下",
-      effect: { toyota: 3, tepco: 2.5, jr: 2, mufg: 0, mercari: 0, bitcoin: 0, jgb: -1, usbond: 0, inpex: -2.5, nintendo: 0 }
-    },
-    usSlowdown: {
-      name: "米国景気減速懸念",
-      details: "リスクオフ・利下げ観測",
-      effect: { toyota: -1, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -3, jgb: 1, usbond: 1.5, inpex: 0, nintendo: -1.5 }
-    },
-    tourismRebound: {
-      name: "観光需要回復",
-      details: "旅行・娯楽需要↑",
-      effect: { toyota: 0, tepco: 0, jr: 3, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
-    },
-    domesticAutoBoom: {
-      name: "国内自動車販売好調",
-      details: "国内販売＆オートローン増",
-      effect: { toyota: 3, tepco: 0, jr: 0, mufg: 3, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 1, nintendo: 0 }
-    },
-    yenHigh: {
-      name: "円高進行",
-      details: "輸出採算悪化・外債評価↓",
-      effect: { toyota: -1, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: 0, jgb: 0, usbond: -1, inpex: 0, nintendo: -1 }
-    },
-    recession: {
-      name: "景気後退ムード",
-      details: "需要減速・債券買い",
-      effect: { toyota: -1, tepco: 0, jr: 0, mufg: -1.5, mercari: 0, bitcoin: 0, jgb: 1, usbond: 0.5, inpex: -2, nintendo: -1 }
-    },
-    logisticsCostRise: {
-      name: "物流費高騰",
-      details: "燃料・人件費↑で配送コスト増",
-      effect: { toyota: -0.5, tepco: -0.5, jr: 0, mufg: -2, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
-    },
-    nintendoHit: {
-      name: "任天堂の新作が大ヒット",
-      details: "ソフト販売＆IP収益↑",
-      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 0, mercari: 2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
-    },
-    nintendoMovie: {
-      name: "任天堂が大型映画公開",
-      details: "IP露出拡大・関連消費↑",
-      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 1, mercari: 1, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 1 }
-    },
-    consumerSpendingSlump: {
-      name: "消費者支出減退",
-      details: "物価高・実質所得↓で消費抑制",
-      effect: { toyota: -0.5, tepco: 0, jr: 0, mufg: -0.5, mercari: -2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: -1 }
-    },
-    bigQuake: {
-      name: "首都圏大地震",
-      details: "インフラ混乱・交通停止",
-      effect: { toyota: 0, tepco: -4, jr: -3, mufg: 0, mercari: 0, bitcoin: 0, jgb: 1, usbond: 0, inpex: 0, nintendo: 0 }
-    },
-    cryptoCrash: {
-      name: "仮想通貨が暴落",
-      details: "リスクオフ・暗号資産売り",
-      effect: { toyota: 0, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -3, jgb: 0, usbond: 1.5, inpex: 0, nintendo: 0 }
-    },
-    remoteWork: {
-      name: "リモートワーク拡大",
-      details: "通勤減・EC活性",
-      effect: { toyota: 0, tepco: 0, jr: -1, mufg: 0, mercari: 2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
-    },
-    cryptoRegTighten: {
-      name: "仮想通貨国際規制強化",
-      details: "規制強化で資金流出",
-      effect: { toyota: 0, tepco: 0, jr: -0.5, mufg: -0.5, mercari: 0, bitcoin: -3, jgb: 0.5, usbond: 0, inpex: 0, nintendo: 0 }
-    },
-    btcETF: {
-      name: "ビットコインETF承認",
-      details: "資金流入でBTC急騰",
-      effect: { toyota: 0, tepco: 0, jr: 0, mufg: 3, mercari: 0, bitcoin: 10, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
-    },
-    btcLegalTender: {
-      name: "ビットコインが法定通貨として採用（複数国）",
-      details: "採用拡大で普及加速",
-      effect: { toyota: 1, tepco: 0, jr: 0, mufg: 2.5, mercari: 2, bitcoin: 10, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
-    },
-    usInfraAct: {
-      name: "米国インフラ投資拡大法成立",
-      details: "財政出動・投資拡大",
-      effect: { toyota: 2, tepco: 0, jr: 0, mufg: 1, mercari: 0, bitcoin: 0, jgb: -2.5, usbond: 1.5, inpex: 0, nintendo: 0 }
-    },
-    bojQE: {
-      name: "日銀大規模緩和策発表",
-      details: "長短金利抑制・円安バイアス",
-      effect: { toyota: 2, tepco: 0, jr: 0, mufg: 2, mercari: 0, bitcoin: 0, jgb: -2, usbond: 1, inpex: 0, nintendo: 0 }
-    }
-
+ const eventMap = {
+  heatWave: {
+    name: "猛暑と電力不足",
+    details: "電力需要↑・外出減",
+    effect: { toyota: 0, tepco: 3, jr: -1, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 2, nintendo: 0 }
+  },
+  globalOilRise: {
+    name: "世界的な原油高",
+    details: "資源価格上昇",
+    effect: { toyota: -0.5, tepco: -1, jr: 0, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 2.5, nintendo: 0 }
+  },
+  fuelPriceDrop: {
+    name: "燃料価格下落",
+    details: "原油安・コスト低下",
+    effect: { toyota: 3, tepco: 2.5, jr: 2, mufg: 0, mercari: 0, bitcoin: 0, jgb: -1, usbond: 0, inpex: -2.5, nintendo: 0 }
+  },
+  usSlowdown: {
+    name: "米国景気減速懸念",
+    details: "リスクオフ・利下げ観測",
+    effect: { toyota: -1, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -2, jgb: 1.5, usbond: 1.8, inpex: 0, nintendo: -1.5 }
+  },
+  tourismRebound: {
+    name: "観光需要回復",
+    details: "旅行・娯楽需要↑",
+    effect: { toyota: 0, tepco: 0, jr: 3, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
+  },
+  domesticAutoBoom: {
+    name: "国内自動車販売好調",
+    details: "国内販売＆オートローン増",
+    effect: { toyota: 3, tepco: 0, jr: 0, mufg: 3, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 1, nintendo: 0 }
+  },
+  yenHigh: {
+    name: "円高進行",
+    details: "輸出採算悪化・外債評価↓",
+    effect: { toyota: -1, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: 0, jgb: 0, usbond: -1, inpex: 0, nintendo: -1 }
+  },
+  recession: {
+    name: "景気後退ムード",
+    details: "需要減速・債券買い",
+    effect: { toyota: -1, tepco: 0, jr: 0, mufg: -1.5, mercari: 0, bitcoin: 0, jgb: 1.3, usbond: 0.7, inpex: -2, nintendo: -1 }
+  },
+  logisticsCostRise: {
+    name: "物流費高騰",
+    details: "燃料・人件費↑で配送コスト増",
+    effect: { toyota: -0.5, tepco: -0.5, jr: 0, mufg: -2, mercari: 0, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
+  },
+  nintendoHit: {
+    name: "任天堂の新作が大ヒット",
+    details: "ソフト販売＆IP収益↑",
+    effect: { toyota: 0, tepco: 0, jr: 0, mufg: 0, mercari: 3, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
+  },
+  nintendoMovie: {
+    name: "任天堂が大型映画公開",
+    details: "IP露出拡大・関連消費↑",
+    effect: { toyota: 0, tepco: 0, jr: 0, mufg: 1, mercari: 2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 3 }
+  },
+  consumerSpendingSlump: {
+    name: "消費者支出減退",
+    details: "物価高・実質所得↓で消費抑制",
+    effect: { toyota: -0.5, tepco: 0, jr: 0, mufg: -0.5, mercari: -2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: -1 }
+  },
+  bigQuake: {
+    name: "首都圏大地震",
+    details: "インフラ混乱・交通停止",
+    effect: { toyota: 0, tepco: -4, jr: -3, mufg: 0, mercari: 0, bitcoin: 0, jgb: 1, usbond: 0, inpex: 0, nintendo: 0 }
+  },
+  cryptoCrash: {
+    name: "仮想通貨が暴落",
+    details: "リスクオフ・暗号資産売り",
+    effect: { toyota: 0, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -4, jgb: 0, usbond: 1.5, inpex: 0, nintendo: 0 }
+  },
+  remoteWork: {
+    name: "リモートワーク拡大",
+    details: "通勤減・EC活性",
+    effect: { toyota: 0, tepco: 0, jr: -1, mufg: 0, mercari: 2, bitcoin: 0, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
+  },
+  cryptoRegTighten: {
+    name: "仮想通貨国際規制強化",
+    details: "規制強化で資金流出",
+    effect: { toyota: 0, tepco: 0, jr: -0.5, mufg: -0.5, mercari: 0, bitcoin: -4, jgb: 0.5, usbond: 0, inpex: 0, nintendo: 0 }
+  },
+  // 新規：取引所ハッキング
+  cryptoHack: {
+    name: "暗号資産取引所で大規模ハッキング",
+    details: "セキュリティ不安で資金退避",
+    effect: { toyota: 0, tepco: 0, jr: 0, mufg: -0.5, mercari: 0, bitcoin: -6, jgb: 0.5, usbond: 0.5, inpex: 0, nintendo: 0 }
+  },
+  btcETF: {
+    name: "ビットコインETF承認",
+    details: "資金流入でBTC急騰",
+    effect: { toyota: 0, tepco: 0, jr: 0, mufg: 2, mercari: 0, bitcoin: 7, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
+  },
+  btcLegalTender: {
+    name: "ビットコインが法定通貨として採用（複数国）",
+    details: "採用拡大で普及加速",
+    effect: { toyota: 1, tepco: 0, jr: 0, mufg: 2, mercari: 1, bitcoin: 6, jgb: 0, usbond: 0, inpex: 0, nintendo: 0 }
+  },
+  usInfraAct: {
+    name: "米国インフラ投資拡大法成立",
+    details: "財政出動・投資拡大",
+    effect: { toyota: 2, tepco: 0, jr: 0, mufg: 1, mercari: 0, bitcoin: 0, jgb: -2.5, usbond: 1.5, inpex: 0, nintendo: 0 }
+  },
+  // 新規：OPEC供給過多
+  opecOversupply: {
+    name: "OPEC増産・供給過多",
+    details: "原油だぶつきで価格下落",
+    effect: { toyota: 0.5, tepco: 0.5, jr: 0, mufg: 0, mercari: 0, bitcoin: 0, jgb: 0.5, usbond: 0, inpex: -3, nintendo: 0 }
+  },
+  bojQE: {
+    name: "日銀大規模緩和策発表",
+    details: "長短金利抑制・円安バイアス",
+    effect: { toyota: 2, tepco: 0, jr: 0, mufg: 2, mercari: 0, bitcoin: 0, jgb: -2, usbond: 1, inpex: 0, nintendo: 0 }
+  }
   };
 
 

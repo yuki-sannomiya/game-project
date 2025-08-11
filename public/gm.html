@@ -44,6 +44,8 @@
       width: 80%;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
+
   </style>
 </head>
 <body>
@@ -79,6 +81,9 @@
   <ul id="returnsList"></ul>
 </div>
 
+<div class="toolbar">
+  <button id="resetBtn">イベントを初期化</button>
+</div>
 
   <!-- ライブラリ読み込み -->
   <script src="/socket.io/socket.io.js"></script>
@@ -86,6 +91,14 @@
 
   <script>
     const socket = io();
+
+ socket.emit("joinAsGM");
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+    if (confirm("本当にイベントと利回りをリセットしますか？")) {
+      socket.emit("resetEvents");
+    }
+  });
     const activeEvents = [];
 
     // ===== Chart.js 初期化 =====
