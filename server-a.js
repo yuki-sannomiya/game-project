@@ -218,7 +218,40 @@ io.on("connection", (socket) => {
         name: "日銀大規模緩和策発表",
         details: "長短金利抑制・円安バイアス",
         effect: { toyota: 2, tepco: 0, jr: 0, mufg: 2, mercari: 0, bitcoin: 0, jgb: -2, usbond: 1, inpex: 0, nintendo: 0 }
+      },
+
+opecOversupply: {
+      name: "OPEC増産・供給過多",
+      details: "原油だぶつきで価格下落",
+      effect: {
+        toyota: 0.5,
+        tepco: 0.5,
+        jr: 0,
+        mufg: 0,
+        mercari: 0,
+        bitcoin: 0,
+        jgb: 0.5,
+        usbond: 0,
+        inpex: -3,
+        nintendo: 0
       }
+    },
+    cryptoHack: {
+      name: "暗号資産取引所で大規模ハッキング",
+      details: "セキュリティ不安で資金退避",
+      effect: {
+        toyota: 0,
+        tepco: 0,
+        jr: 0,
+        mufg: -0.5,
+        mercari: 0,
+        bitcoin: -6,
+        jgb: 0.5,
+        usbond: 0.5,
+        inpex: 0,
+        nintendo: 0
+      }
+    }
     };
 
     const event = eventMap[eventKey];
