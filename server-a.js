@@ -10,6 +10,7 @@ console.log(`Starting Investment Game - ${GAME_NAME}`);
 // 確認用のエンドポイント
 // → https://<URL>/env にアクセスすると現在のゲーム名が見れる
 const app = express();
+app.get("/favicon.ico", (_req, res) => res.status(204).end());
 app.get("/env", (_, res) => res.json({ game: GAME_NAME }));
 
 const server = http.createServer(app);
